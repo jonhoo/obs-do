@@ -2,6 +2,15 @@
 invoked on the command line. It's particularly handy when used in
 combination with global system hotkeys that can invoke commands.
 
+Assuming you have [Rust installed][Rust], run:
+
+```console
+$ cargo install obs-do
+```
+
+and make sure you have `~/.cargo/bin` on your `$PATH` (or execute it
+directly from there).
+
 The motivation for build it for me is that OBS [does not (yet)
 support][nope] global hotkeys under Wayland. Which is unfortunate, given
 that they're pretty much essential to doing streaming where you can't
