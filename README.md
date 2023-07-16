@@ -1,4 +1,4 @@
-`obs-do` is a simple application that triggers OBS operations when
+`obs-do` is a simple control utility that triggers OBS operations when
 invoked on the command line. It's particularly handy when used in
 combination with global system hotkeys that can invoke commands.
 
