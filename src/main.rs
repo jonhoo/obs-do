@@ -30,20 +30,22 @@ async fn main() -> anyhow::Result<()> {
     let exists = tokio::fs::try_exists(&cfg).await;
 
     let pw = match exists {
-        Ok(true) => {
-            Some(
-                tokio::fs::read_to_string(&cfg)
-                    .await
-                    .unwrap()
-                    .trim()
-                    .to_string(),
-            )
+        Ok(true) => Some(
+            tokio::fs::read_to_string(&cfg)
+                .await
+                .unwrap()
+                .trim()
+                .to_string(),
+        ),
         Ok(false) => {
             eprintln!("Attempting to connect to OBS in password-less mode.");
             None
         }
         Err(e) => {
-            anyhow::bail!("Failed to read OBS WebSocket password file {}: {e:?}", cfg.display());
+            anyhow::bail!(
+                "Failed to read OBS WebSocket password file {}: {e:?}",
+                cfg.display()
+            );
         }
     };
 
