@@ -28,43 +28,57 @@ async fn main() -> anyhow::Result<()> {
     let cfg = proj_dirs.config_dir().join("websocket-token");
 
     let exists = tokio::fs::try_exists(&cfg).await;
-    if !exists.unwrap_or(false) {
-        anyhow::bail!(
-            "\
-No OBS WebSocket authentication token found.
-Open OBS, go to Tools -> WebSocket Server Settings, \
-hit 'Show Connect Info', and place that token in the file {}\
-            ",
-            cfg.display()
-        );
-    }
-    let pw = tokio::fs::read_to_string(&cfg)
-        .await
-        .context("read OBS WebSocket autheticator from obs-do config file")?;
 
-    let client = if let Ok(client) = Client::connect("localhost", 4455, Some(pw.trim())).await {
-        let version = client
-            .general()
-            .version()
-            .await
-            .context("get OBS version")?;
-        eprintln!(
-            "Connected to OBS: {} / {}",
-            version.obs_version, version.obs_web_socket_version
-        );
-        client
-    } else {
-        anyhow::bail!(
-            "\
+    let pw = match exists {
+        Ok(true) => {
+            Some(
+                tokio::fs::read_to_string(&cfg)
+                    .await
+                    .unwrap()
+                    .trim()
+                    .to_string(),
+            )
+        Ok(false) => {
+            eprintln!("Attempting to connect to OBS in password-less mode.");
+            None
+        }
+        Err(e) => {
+            anyhow::bail!("Failed to read OBS WebSocket password file {}: {e:?}", cfg.display());
+        }
+    };
+
+    let client_res = Client::connect("localhost", 4455, pw).await;
+    let client = match client_res {
+        Ok(client) => {
+            let version = client
+                .general()
+                .version()
+                .await
+                .context("get OBS version")?;
+            eprintln!(
+                "Connected to OBS: {} / {}",
+                version.obs_version, version.obs_web_socket_version
+            );
+            client
+        }
+        Err(error) => {
+            anyhow::bail!(
+                "\
 Could not connect to OBS over WebSocket.
-Make sure OBS is running, and that 'Enable WebSocket server' is checked \
-under Tools -> WebSocket Server Settings.
 
-If that menu item does not appear for you, your OBS has not been built \
-with WebSocket support. On Arch Linux for example, you'll want one of \
-the AUR obs-studio packages that build WebSocket, such as obs-studio-git.\
-"
-        );
+- Make sure OBS is running, and that 'Enable WebSocket server' is checked under Tools -> WebSocket Server Settings.
+  If that menu item does not appear for you, your OBS has not been built with WebSocket support.\
+  On Arch Linux for example, you'll want one of the AUR obs-studio packages that build WebSocket, such as obs-studio-git.
+
+- If your server requires a password, make sure that you have it written in {}
+
+ERROR message:
+    {:?}
+                    ",
+                cfg.display(),
+                error
+            )
+        }
     };
 
     match args.cmd {
