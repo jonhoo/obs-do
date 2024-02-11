@@ -1,3 +1,8 @@
+[![Crates.io](https://img.shields.io/crates/v/obs-do.svg)](https://crates.io/crates/guardian)
+[![Documentation](https://docs.rs/obs-do/badge.svg)](https://docs.rs/guardian/)
+[![codecov](https://codecov.io/gh/jonhoo/obs-do/branch/main/graph/badge.svg?token=QOXMTH9TSA)](https://codecov.io/gh/jonhoo/guardian)
+[![Dependency status](https://deps.rs/repo/github/jonhoo/obs-do/status.svg)](https://deps.rs/repo/github/jonhoo/guardian)
+
 `obs-do` is a simple control utility that triggers OBS operations when
 invoked on the command line. It's particularly handy when used in
 combination with global system hotkeys that can invoke commands.
