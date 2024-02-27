@@ -105,14 +105,14 @@ ERROR message:
                         .inputs()
                         .toggle_mute(&target)
                         .await
-                        .context("toggle-input-mute {target}")?;
+                        .context("toggle-mute {target}")?;
                 },
                 None => {
                     client
                         .inputs()
                         .toggle_mute("Mic/Aux")
                         .await
-                        .context("toggle-input-mute Mic/Aux")?;
+                        .context("toggle-mute Mic/Aux")?;
                 }
             }
         }
