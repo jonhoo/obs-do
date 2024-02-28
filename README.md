@@ -1,8 +1,9 @@
-Forked from jonhoo after seeing that one or two basic additions could be made, then got a little carried away.
+Forked from jonhoo after seeing that one or two basic additions could be made, then got a little carried away.   
 This fork adds in:
---optional targeting for the ToggleMute command
---ToggleInputFade, which actively fades between volumes over a set amount of time.
---TBD?
+
+--optional targeting for the ToggleMute command   
+--ToggleInputFade, which actively fades between volumes over a set amount of time.   
+--TBD?   
 
 ---
 
