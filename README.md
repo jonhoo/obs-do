@@ -1,3 +1,11 @@
+Forked from jonhoo after seeing that one or two basic additions could be made, then got a little carried away.
+This fork adds in:
+--optional targeting for the ToggleMute command
+--ToggleInputFade, which actively fades between volumes over a set amount of time.
+--TBD?
+
+---
+
 [![Crates.io](https://img.shields.io/crates/v/obs-do.svg)](https://crates.io/crates/guardian)
 [![codecov](https://codecov.io/gh/jonhoo/obs-do/branch/main/graph/badge.svg?token=QOXMTH9TSA)](https://codecov.io/gh/jonhoo/guardian)
 [![Dependency status](https://deps.rs/repo/github/jonhoo/obs-do/status.svg)](https://deps.rs/repo/github/jonhoo/guardian)
