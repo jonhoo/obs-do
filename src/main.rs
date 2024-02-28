@@ -2,128 +2,172 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
 use obws::Client;
+use obws::requests::inputs::Volume;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[command(subcommand)]
-    cmd: Command,
+   #[command(subcommand)]
+   cmd: Command,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    ToggleStream,
-    ToggleRecord,
-    ToggleMute { input: Option<String> },
-    SetScene { scene: String },
+   ToggleStream,
+   ToggleRecord,
+   ToggleMute { input: Option<String> },
+   ToggleInputFade { input: String, target_vol_perc: String, duration: String },
+   SetScene { scene: String },
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+   let args = Args::parse();
 
-    let Some(proj_dirs) = ProjectDirs::from("", "", "obs-do") else {
-        anyhow::bail!("could not determine configuration file location");
-    };
-    let cfg = proj_dirs.config_dir().join("websocket-token");
+   let Some(proj_dirs) = ProjectDirs::from("", "", "obs-do") else {
+      anyhow::bail!("could not determine configuration file location");
+   };
+   let cfg = proj_dirs.config_dir().join("websocket-token");
 
-    let exists = tokio::fs::try_exists(&cfg).await;
+   let exists = tokio::fs::try_exists(&cfg).await;
 
-    let pw = match exists {
-        Ok(true) => Some(
-            tokio::fs::read_to_string(&cfg)
-                .await
-                .unwrap()
-                .trim()
-                .to_string(),
-        ),
-        Ok(false) => {
-            eprintln!("Attempting to connect to OBS in password-less mode.");
-            None
-        }
-        Err(e) => {
-            anyhow::bail!(
-                "Failed to read OBS WebSocket password file {}: {e:?}",
-                cfg.display()
-            );
-        }
-    };
+   let pw = match exists {
+      Ok(true) => Some(
+         tokio::fs::read_to_string(&cfg)
+            .await
+            .unwrap()
+            .trim()
+            .to_string(),
+      ),
+      Ok(false) => {
+         eprintln!("Attempting to connect to OBS in password-less mode.");
+         None
+      }
+      Err(e) => {
+         anyhow::bail!(
+            "Failed to read OBS WebSocket password file {}: {e:?}",
+            cfg.display()
+         );
+      }
+   };
 
-    let client_res = Client::connect("localhost", 4455, pw).await;
-    let client = match client_res {
-        Ok(client) => {
-            let version = client
-                .general()
-                .version()
-                .await
-                .context("get OBS version")?;
-            eprintln!(
-                "Connected to OBS: {} / {}",
-                version.obs_version, version.obs_web_socket_version
-            );
-            client
-        }
-        Err(error) => {
-            anyhow::bail!(
-                "\
+   let client_res = Client::connect("localhost", 4455, pw).await;
+   let client = match client_res {
+      Ok(client) => {
+         let version = client
+            .general()
+            .version()
+            .await
+            .context("get OBS version")?;
+         eprintln!(
+            "Connected to OBS: {} / {}",
+            version.obs_version, version.obs_web_socket_version
+         );
+         client
+      }
+      Err(error) => {
+         anyhow::bail!(
+               "\
 Could not connect to OBS over WebSocket.
 
 - Make sure OBS is running, and that 'Enable WebSocket server' is checked under Tools -> WebSocket Server Settings.
-  If that menu item does not appear for you, your OBS has not been built with WebSocket support.\
-  On Arch Linux for example, you'll want one of the AUR obs-studio packages that build WebSocket, such as obs-studio-git.
+If that menu item does not appear for you, your OBS has not been built with WebSocket support.\
+On Arch Linux for example, you'll want one of the AUR obs-studio packages that build WebSocket, such as obs-studio-git.
 
 - If your server requires a password, make sure that you have it written in {}
 
 ERROR message:
-    {:?}
-                    ",
-                cfg.display(),
-                error
-            )
-        }
-    };
+   {:?}
+               ",
+            cfg.display(),
+            error
+         )
+      }
+   };
 
-    match args.cmd {
-        Command::ToggleStream => {
-            client
-                .streaming()
-                .toggle()
-                .await
-                .context("toggle streaming")?;
-        }
-        Command::ToggleRecord => {
-            client
-                .recording()
-                .toggle()
-                .await
-                .context("toggle recording")?;
-        }
-        Command::ToggleMute { input } => {
-            match input {
-                Some(target) => {
-                    client
-                        .inputs()
-                        .toggle_mute(&target)
-                        .await
-                        .context("toggle-mute {target}")?;
-                },
-                None => {
-                    client
-                        .inputs()
-                        .toggle_mute("Mic/Aux")
-                        .await
-                        .context("toggle-mute Mic/Aux")?;
-                }
+   match args.cmd {
+      Command::ToggleStream => {
+         client
+               .streaming()
+               .toggle()
+               .await
+               .context("toggle streaming")?;
+      }
+      Command::ToggleRecord => {
+         client
+               .recording()
+               .toggle()
+               .await
+               .context("toggle recording")?;
+      }
+      Command::ToggleMute { input } => {
+         match input {
+            Some(target) => {
+               client
+                  .inputs()
+                  .toggle_mute(&target)
+                  .await
+                  .context("toggle-mute {target}")?;
+            },
+            None => {
+               client
+                  .inputs()
+                  .toggle_mute("Mic/Aux")
+                  .await
+                  .context("toggle-mute Mic/Aux")?;
             }
-        }
-        Command::SetScene { scene } => {
-            client
-                .scenes()
-                .set_current_program_scene(&scene)
-                .await
-                .with_context(|| format!("set-scene {scene}"))?;
-        }
-    }
+         }
+      }
+      //TODO: Figure out a better way to implement reading negative db inputs.
+      //Currently, the program dies and demands a '-- -25db' notation.
+      Command::ToggleInputFade { input, target_vol_perc, duration } => {
+         let current_vol =
+            client.inputs().volume(&input).await.context("get-current-volume {input}")?;
+         let final_vol: f32 =
+            (target_vol_perc.to_lowercase().split('%').collect::<String>().parse::<f32>().unwrap()) / 100.0;
+         let vol_diff: f32 = match current_vol.mul > final_vol {
+            true => current_vol.mul - final_vol,
+            false => final_vol - current_vol.mul
+         };
+         let vol_move_amount = vol_diff / (60.0 * duration.parse::<f32>().unwrap());
+         let mut current_inter_vol = current_vol.mul;
+         let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(16));
 
-    Ok(())
+         match current_vol.mul > final_vol {
+            true => {
+               while current_inter_vol > final_vol {
+                  println!("{current_inter_vol}");
+                  interval.tick().await;
+                  client
+                     .inputs()
+                     .set_volume(&input, Volume::Mul(current_inter_vol))
+                     .await
+                     .context("set-volume {input}")?;
+                  current_inter_vol -= vol_move_amount;
+               }
+            },
+            false => {
+               while current_inter_vol < final_vol {
+                  println!("{current_inter_vol}");
+                  interval.tick().await;
+                  client
+                     .inputs()
+                     .set_volume(&input, Volume::Mul(current_inter_vol))
+                     .await
+                     .context("set-volume {input}")?;
+                  current_inter_vol += vol_move_amount;
+               }
+            }
+         }
+      }
+      Command::SetScene { scene } => {
+         client
+            .scenes()
+            .set_current_program_scene(&scene)
+            .await
+            .with_context(|| format!("set-scene {scene}"))?;
+      }
+   }
+
+   Ok(())
 }
