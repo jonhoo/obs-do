@@ -1,7 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
-use obws::Client;
+use obws::{Client, requests::inputs::Volume};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -16,6 +16,11 @@ enum Command {
     ToggleRecord,
     ToggleMute { input: Option<String> },
     SetScene { scene: String },
+    SetVolume { 
+        input: String,
+        #[arg(allow_hyphen_values = true)]
+        target_vol: String 
+    },
 }
 
 #[tokio::main]
@@ -122,6 +127,30 @@ ERROR message:
                 .set_current_program_scene(&scene)
                 .await
                 .with_context(|| format!("set-scene {scene}"))?;
+        }
+        Command::SetVolume { input, target_vol } => {
+            let eval_target = target_vol.to_lowercase();
+            let final_vol: Volume;
+
+            if eval_target.contains('%') {
+                final_vol = Volume::Mul(
+                    (eval_target.split('%').collect::<String>().parse::<f32>().unwrap()) / 100.0
+                );
+            } else if eval_target.contains("db") {
+                final_vol = Volume::Db(
+                    eval_target.split("db").collect::<String>().parse::<f32>().unwrap()
+                );
+            } else {
+                final_vol = Volume::Mul(
+                    (eval_target.parse::<f32>().unwrap()) / 100.0
+                );
+            }
+
+            client
+                .inputs()
+                .set_volume(&input, final_vol)
+                .await
+                .context(format!("set-volume {input}"))?;
         }
     }
 
