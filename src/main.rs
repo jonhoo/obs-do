@@ -14,7 +14,7 @@ struct Args {
 enum Command {
     ToggleStream,
     ToggleRecord,
-    ToggleMute { input: Option<String> },
+    ToggleMute,
     SetScene { scene: String },
     /// Sets volume for input to specified volume, in db or %. If no unit is provided, defaults to %.
     SetVolume { 
@@ -104,23 +104,12 @@ ERROR message:
                 .await
                 .context("toggle recording")?;
         }
-        Command::ToggleMute { input } => {
-            match input {
-                Some(input) => {
-                    client
-                        .inputs()
-                        .toggle_mute(&input)
-                        .await
-                        .context(format!("toggle-mute {input}"))?;
-                },
-                None => {
-                    client
-                        .inputs()
-                        .toggle_mute("Mic/Aux")
-                        .await
-                        .context("toggle-mute Mic/Aux")?;
-                }
-            }
+        Command::ToggleMute => {
+            client
+                .inputs()
+                .toggle_mute("Mic/Aux")
+                .await
+                .context("toggle-mute Mic/Aux")?;
         }
         Command::SetScene { scene } => {
             client
