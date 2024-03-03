@@ -14,6 +14,7 @@ struct Args {
 enum Command {
     ToggleStream,
     ToggleRecord,
+    /// Takes an input target and mutes it. If no target is provided, mutes 'Mic/Aux' instead.
     ToggleMute { input: Option<String> },
     SetScene { scene: String },
 }
