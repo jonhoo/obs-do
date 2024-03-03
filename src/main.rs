@@ -16,6 +16,7 @@ enum Command {
     ToggleRecord,
     ToggleMute { input: Option<String> },
     SetScene { scene: String },
+    /// Sets volume for input to specified volume, in db or %. If no unit is provided, defaults to %.
     SetVolume { 
         input: String,
         #[arg(allow_hyphen_values = true)]
