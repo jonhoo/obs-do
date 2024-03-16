@@ -105,12 +105,23 @@ ERROR message:
                 .await
                 .context("toggle recording")?;
         }
-        Command::ToggleMute => {
-            client
-                .inputs()
-                .toggle_mute("Mic/Aux")
-                .await
-                .context("toggle-mute Mic/Aux")?;
+        Command::ToggleMute { input } => {
+            match input {
+                Some(input) => {
+                    client
+                        .inputs()
+                        .toggle_mute(&input)
+                        .await
+                        .context(format!("toggle-mute {input}"))?;
+                },
+                None => {
+                    client
+                        .inputs()
+                        .toggle_mute("Mic/Aux")
+                        .await
+                        .context("toggle-mute Mic/Aux")?;
+                }
+            }
         }
         Command::SetScene { scene } => {
             client
