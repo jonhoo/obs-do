@@ -1,7 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
-use obws::{Client, requests::inputs::Volume};
+use obws::{requests::inputs::Volume, Client};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -15,13 +15,17 @@ enum Command {
     ToggleStream,
     ToggleRecord,
     /// Takes an input target and mutes it. If no target is provided, mutes 'Mic/Aux' instead.
-    ToggleMute { input: Option<String> },
-    SetScene { scene: String },
+    ToggleMute {
+        input: Option<String>,
+    },
+    SetScene {
+        scene: String,
+    },
     /// Sets volume for input to specified volume, in db or %. If no unit is provided, defaults to %.
-    SetVolume { 
+    SetVolume {
         input: String,
         #[arg(allow_hyphen_values = true)]
-        target_vol: String 
+        target_vol: String,
     },
 }
 
@@ -105,24 +109,22 @@ ERROR message:
                 .await
                 .context("toggle recording")?;
         }
-        Command::ToggleMute { input } => {
-            match input {
-                Some(input) => {
-                    client
-                        .inputs()
-                        .toggle_mute(&input)
-                        .await
-                        .context(format!("toggle-mute {input}"))?;
-                },
-                None => {
-                    client
-                        .inputs()
-                        .toggle_mute("Mic/Aux")
-                        .await
-                        .context("toggle-mute Mic/Aux")?;
-                }
+        Command::ToggleMute { input } => match input {
+            Some(input) => {
+                client
+                    .inputs()
+                    .toggle_mute(&input)
+                    .await
+                    .context(format!("toggle-mute {input}"))?;
             }
-        }
+            None => {
+                client
+                    .inputs()
+                    .toggle_mute("Mic/Aux")
+                    .await
+                    .context("toggle-mute Mic/Aux")?;
+            }
+        },
         Command::SetScene { scene } => {
             client
                 .scenes()
@@ -136,16 +138,23 @@ ERROR message:
 
             if eval_target.contains('%') {
                 final_vol = Volume::Mul(
-                    (eval_target.split('%').collect::<String>().parse::<f32>().unwrap()) / 100.0
+                    (eval_target
+                        .split('%')
+                        .collect::<String>()
+                        .parse::<f32>()
+                        .unwrap())
+                        / 100.0,
                 );
             } else if eval_target.contains("db") {
                 final_vol = Volume::Db(
-                    eval_target.split("db").collect::<String>().parse::<f32>().unwrap()
+                    eval_target
+                        .split("db")
+                        .collect::<String>()
+                        .parse::<f32>()
+                        .unwrap(),
                 );
             } else {
-                final_vol = Volume::Mul(
-                    (eval_target.parse::<f32>().unwrap()) / 100.0
-                );
+                final_vol = Volume::Mul((eval_target.parse::<f32>().unwrap()) / 100.0);
             }
 
             client
