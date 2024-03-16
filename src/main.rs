@@ -1,7 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
-use obws::{Client, requests::inputs::Volume};
+use obws::{requests::inputs::Volume, Client};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -14,14 +14,24 @@ struct Args {
 enum Command {
     ToggleStream,
     ToggleRecord,
-    /// Takes an input target and mutes it. If no target is provided, mutes 'Mic/Aux' instead.
-    ToggleMute { input: Option<String> },
-    SetScene { scene: String },
-    /// Sets volume for input to specified volume, in db or %. If no unit is provided, defaults to %.
-    SetVolume { 
+    /// Mutes the given input.
+    ToggleMute {
+        #[clap(default_value = "Mic/Aux")]
         input: String,
+    },
+    SetScene {
+        scene: String,
+    },
+    /// Sets the volume of the given input to specified volume.
+    SetVolume {
+        #[clap(default_value = "Mic/Aux")]
+        input: String,
+
+        /// Volume should be provided in dB for absolute volume or % for relative adjustments.
+        ///
+        /// If no unit is provided, it is interpreted as %.
         #[arg(allow_hyphen_values = true)]
-        target_vol: String 
+        volume: String,
     },
 }
 
@@ -106,22 +116,11 @@ ERROR message:
                 .context("toggle recording")?;
         }
         Command::ToggleMute { input } => {
-            match input {
-                Some(input) => {
-                    client
-                        .inputs()
-                        .toggle_mute(&input)
-                        .await
-                        .context(format!("toggle-mute {input}"))?;
-                },
-                None => {
-                    client
-                        .inputs()
-                        .toggle_mute("Mic/Aux")
-                        .await
-                        .context("toggle-mute Mic/Aux")?;
-                }
-            }
+            client
+                .inputs()
+                .toggle_mute(&input)
+                .await
+                .context(format!("toggle-mute {input}"))?;
         }
         Command::SetScene { scene } => {
             client
@@ -130,29 +129,19 @@ ERROR message:
                 .await
                 .with_context(|| format!("set-scene {scene}"))?;
         }
-        Command::SetVolume { input, target_vol } => {
-            let eval_target = target_vol.to_lowercase();
-            let final_vol: Volume;
-
-            if eval_target.contains('%') {
-                final_vol = Volume::Mul(
-                    (eval_target.split('%').collect::<String>().parse::<f32>().unwrap()) / 100.0
-                );
-            } else if eval_target.contains("db") {
-                final_vol = Volume::Db(
-                    eval_target.split("db").collect::<String>().parse::<f32>().unwrap()
-                );
+        Command::SetVolume { input, volume } => {
+            let new_volume = if let Some(db) = volume.strip_suffix("dB") {
+                Volume::Db(db.parse().context("invalid dB quantity")?)
             } else {
-                final_vol = Volume::Mul(
-                    (eval_target.parse::<f32>().unwrap()) / 100.0
-                );
-            }
+                let volume = volume.strip_suffix('%').unwrap_or(&volume);
+                Volume::Mul(volume.parse::<f32>().context("invalid % volume change")? / 100.)
+            };
 
             client
                 .inputs()
-                .set_volume(&input, final_vol)
+                .set_volume(&input, new_volume)
                 .await
-                .context(format!("set-volume {input}"))?;
+                .context(format!("set-volume {input} {volume}"))?;
         }
     }
 
