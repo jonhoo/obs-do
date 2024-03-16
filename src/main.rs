@@ -133,7 +133,7 @@ ERROR message:
             let new_volume = if let Some(db) = volume.strip_suffix("dB") {
                 Volume::Db(db.parse().context("invalid dB quantity")?)
             } else {
-                let volume = volume.strip_suffix("%").unwrap_or(&volume);
+                let volume = volume.strip_suffix('%').unwrap_or(&volume);
                 Volume::Mul(volume.parse::<f32>().context("invalid % volume change")? / 100.)
             };
 
