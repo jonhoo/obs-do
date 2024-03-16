@@ -14,9 +14,10 @@ struct Args {
 enum Command {
     ToggleStream,
     ToggleRecord,
-    /// Takes an input target and mutes it. If no target is provided, mutes 'Mic/Aux' instead.
+    /// Mutes the given input.
     ToggleMute {
-        input: Option<String>,
+        #[clap(default_value = "Mic/Aux")]
+        input: String,
     },
     SetScene {
         scene: String,
@@ -109,22 +110,13 @@ ERROR message:
                 .await
                 .context("toggle recording")?;
         }
-        Command::ToggleMute { input } => match input {
-            Some(input) => {
-                client
-                    .inputs()
-                    .toggle_mute(&input)
-                    .await
-                    .context(format!("toggle-mute {input}"))?;
-            }
-            None => {
-                client
-                    .inputs()
-                    .toggle_mute("Mic/Aux")
-                    .await
-                    .context("toggle-mute Mic/Aux")?;
-            }
-        },
+        Command::ToggleMute { input } => {
+            client
+                .inputs()
+                .toggle_mute(&input)
+                .await
+                .context(format!("toggle-mute {input}"))?;
+        }
         Command::SetScene { scene } => {
             client
                 .scenes()
