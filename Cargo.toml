@@ -1,7 +1,7 @@
 [package]
 name = "obs-do"
 description = "WebSocket control utility for OBS Studio"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/jonhoo/obs-do.git"
@@ -11,6 +11,6 @@ keywords = ["obs", "streaming", "websocket"]
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.4", features = ["derive"] }
-obws = "0.11.2"
+obws = "0.12.0"
 tokio = { version = "1.38.0", features = ["full"] }
 directories = "5.0.1"

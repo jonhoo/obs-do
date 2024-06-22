@@ -1,7 +1,13 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
-use obws::{requests::inputs::Volume, Client};
+use obws::{
+    requests::{
+        inputs::{InputId, Volume},
+        scenes::SceneId,
+    },
+    Client,
+};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -118,14 +124,14 @@ ERROR message:
         Command::ToggleMute { input } => {
             client
                 .inputs()
-                .toggle_mute(&input)
+                .toggle_mute(InputId::Name(&input))
                 .await
                 .context(format!("toggle-mute {input}"))?;
         }
         Command::SetScene { scene } => {
             client
                 .scenes()
-                .set_current_program_scene(&scene)
+                .set_current_program_scene(SceneId::Name(&scene))
                 .await
                 .with_context(|| format!("set-scene {scene}"))?;
         }
@@ -139,7 +145,7 @@ ERROR message:
 
             client
                 .inputs()
-                .set_volume(&input, new_volume)
+                .set_volume(InputId::Name(&input), new_volume)
                 .await
                 .context(format!("set-volume {input} {volume}"))?;
         }
