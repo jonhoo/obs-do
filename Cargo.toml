@@ -11,6 +11,6 @@ keywords = ["obs", "streaming", "websocket"]
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.13", features = ["derive"] }
-obws = "0.12.0"
+obws = "0.13.0"
 tokio = { version = "1.39.2", features = ["full"] }
 directories = "5.0.1"
