@@ -25,6 +25,11 @@ enum Command {
         #[clap(default_value = "Mic/Aux")]
         input: String,
     },
+    /// Query whether the given input is muted.
+    GetMute {
+        #[clap(default_value = "Mic/Aux")]
+        input: String,
+    },
     SetScene {
         scene: String,
     },
@@ -127,6 +132,14 @@ ERROR message:
                 .toggle_mute(InputId::Name(&input))
                 .await
                 .with_context(|| format!("toggle-mute {input}"))?;
+        }
+        Command::GetMute { input } => {
+            let muted = client
+                .inputs()
+                .muted(InputId::Name(&input))
+                .await
+                .with_context(|| format!("get-mute {input}"))?;
+            println!("{}", muted);
         }
         Command::SetScene { scene } => {
             client
