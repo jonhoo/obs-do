@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
                 .general()
                 .version()
                 .await
-                .context("get OBS version")?;
+                .with_context(|| "get OBS version")?;
             eprintln!(
                 "Connected to OBS: {} / {}",
                 version.obs_version, version.obs_web_socket_version
@@ -126,7 +126,7 @@ ERROR message:
                 .inputs()
                 .toggle_mute(InputId::Name(&input))
                 .await
-                .context(format!("toggle-mute {input}"))?;
+                .with_context(|| format!("toggle-mute {input}"))?;
         }
         Command::SetScene { scene } => {
             client
@@ -147,7 +147,7 @@ ERROR message:
                 .inputs()
                 .set_volume(InputId::Name(&input), new_volume)
                 .await
-                .context(format!("set-volume {input} {volume}"))?;
+                .with_context(|| format!("set-volume {input} {volume}"))?;
         }
     }
 
