@@ -20,20 +20,21 @@ struct Args {
 enum Command {
     ToggleStream,
     ToggleRecord,
-    /// Mutes the given input.
+    /// Args: [input]. Mutes the given input.
     ToggleMute {
         #[clap(default_value = "Mic/Aux")]
         input: String,
     },
-    /// Query whether the given input is muted.
+    /// Args: [input]. Query whether the given input is muted.
     GetMute {
         #[clap(default_value = "Mic/Aux")]
         input: String,
     },
+    /// Args: [scene].
     SetScene {
         scene: String,
     },
-    /// Sets the volume of the given input to specified volume.
+    /// Args: [input] [volume]. Sets the volume of the given input to specified volume.
     SetVolume {
         #[clap(default_value = "Mic/Aux")]
         input: String,
@@ -44,6 +45,10 @@ enum Command {
         #[arg(allow_hyphen_values = true)]
         volume: String,
     },
+    StartReplay,
+    StopReplay,
+    ToggleReplay,
+    SaveReplay
 }
 
 #[tokio::main]
@@ -125,6 +130,34 @@ ERROR message:
                 .toggle()
                 .await
                 .context("toggle recording")?;
+        }
+        Command::StartReplay => {
+            client
+                .replay_buffer()
+                .start()
+                .await
+                .context("start replay")?;
+        }
+        Command::StopReplay => {
+            client
+                .replay_buffer()
+                .stop()
+                .await
+                .context("stop replay")?;
+        }
+        Command::ToggleReplay => {
+            client
+                .replay_buffer()
+                .toggle()
+                .await
+                .context("toggle replay")?;
+        }
+        Command::SaveReplay => {
+            client
+                .replay_buffer()
+                .save()
+                .await
+                .context("save replay")?;
         }
         Command::ToggleMute { input } => {
             client
