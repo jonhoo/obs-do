@@ -18,11 +18,11 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Start/Stop the stream
+    /// Start/Stop streaming
     ToggleStream,
-    /// Start/Stop the recording
+    /// Start/Stop recording
     ToggleRecord,
-    /// Pause/Unpause the recording
+    /// Pause/Unpause recording
     TogglePause,
     /// Mutes the given input.
     ToggleMute {
