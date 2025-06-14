@@ -18,8 +18,12 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Start/Stop streaming
     ToggleStream,
+    /// Start/Stop recording
     ToggleRecord,
+    /// Pause/Unpause recording
+    TogglePause,
     /// Mutes the given input.
     ToggleMute {
         #[clap(default_value = "Mic/Aux")]
@@ -30,9 +34,8 @@ enum Command {
         #[clap(default_value = "Mic/Aux")]
         input: String,
     },
-    SetScene {
-        scene: String,
-    },
+    /// Set the scene
+    SetScene { scene: String },
     /// Sets the volume of the given input to specified volume.
     SetVolume {
         #[clap(default_value = "Mic/Aux")]
@@ -125,6 +128,13 @@ ERROR message:
                 .toggle()
                 .await
                 .context("toggle recording")?;
+        }
+        Command::TogglePause => {
+            client
+                .recording()
+                .toggle_pause()
+                .await
+                .context("toggle pause")?;
         }
         Command::ToggleMute { input } => {
             client
