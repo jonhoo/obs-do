@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
                 .with_context(|| "get OBS version")?;
             eprintln!(
                 "Connected to OBS: {} / {}",
-                version.obs_version, version.obs_web_socket_version
+                version.obs_studio_version, version.obs_web_socket_version
             );
             client
         }
