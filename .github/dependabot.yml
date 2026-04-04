@@ -4,12 +4,22 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      gha-bump:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: monthly
     # already the default for libraries, but we want it for everything
-    versioning-strategy: "increase-if-necessary"
+    # unfortunately it's rejected in dependabot.yml at the moment despite being
+    # implemented inside dependabot. see
+    # https://github.com/dependabot/dependabot-core/issues/4009
+    #
+    # versioning-strategy: "increase-if-necessary"
     groups:
       cargo-bump:
         applies-to: version-updates
