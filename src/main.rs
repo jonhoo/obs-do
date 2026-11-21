@@ -14,12 +14,23 @@ use obws::{
 struct Args {
     #[command(subcommand)]
     cmd: Command,
+
+    /// Retry connecting to OBS for up to this many seconds (with
+    /// exponential backoff) instead of failing on the first attempt.
+    /// Useful right after launching OBS, when the websocket server
+    /// isn't up yet.
+    #[arg(long, default_value_t = 0)]
+    wait_for_obs: u64,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Start/Stop streaming
     ToggleStream,
+    /// Start streaming, if not already streaming.
+    StartStream,
+    /// Stop streaming, if currently streaming.
+    StopStream,
     /// Start/Stop recording
     ToggleRecord,
     /// Pause/Unpause recording
@@ -80,23 +91,26 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let client_res = Client::connect("localhost", 4455, pw).await;
-    let client = match client_res {
-        Ok(client) => {
-            let version = client
-                .general()
-                .version()
-                .await
-                .with_context(|| "get OBS version")?;
-            eprintln!(
-                "Connected to OBS: {} / {}",
-                version.obs_studio_version, version.obs_web_socket_version
-            );
-            client
-        }
-        Err(error) => {
-            anyhow::bail!(
-                "\
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(args.wait_for_obs);
+    let mut backoff = std::time::Duration::from_millis(200);
+    let client = loop {
+        match Client::connect("localhost", 4455, pw.clone()).await {
+            Ok(client) => {
+                let version = client
+                    .general()
+                    .version()
+                    .await
+                    .with_context(|| "get OBS version")?;
+                eprintln!(
+                    "Connected to OBS: {} / {}",
+                    version.obs_studio_version, version.obs_web_socket_version
+                );
+                break client;
+            }
+            Err(error) => {
+                if args.wait_for_obs == 0 || tokio::time::Instant::now() >= deadline {
+                    anyhow::bail!(
+                        "\
 Could not connect to OBS over WebSocket.
 
 - Make sure OBS is running, and that 'Enable WebSocket server' is checked under Tools -> WebSocket Server Settings.
@@ -108,9 +122,13 @@ Could not connect to OBS over WebSocket.
 ERROR message:
     {:?}
                     ",
-                cfg.display(),
-                error
-            )
+                        cfg.display(),
+                        error
+                    )
+                }
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(std::time::Duration::from_secs(2));
+            }
         }
     };
 
@@ -121,6 +139,26 @@ ERROR message:
                 .toggle()
                 .await
                 .context("toggle streaming")?;
+        }
+        Command::StartStream => {
+            let status = client
+                .streaming()
+                .status()
+                .await
+                .context("get streaming status")?;
+            if !status.active {
+                client.streaming().start().await.context("start streaming")?;
+            }
+        }
+        Command::StopStream => {
+            let status = client
+                .streaming()
+                .status()
+                .await
+                .context("get streaming status")?;
+            if status.active {
+                client.streaming().stop().await.context("stop streaming")?;
+            }
         }
         Command::ToggleRecord => {
             client
